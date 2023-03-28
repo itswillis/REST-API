@@ -1,6 +1,8 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
+from flask_uploads import UploadSet, configure_uploads, IMAGES
+
 import os
 
 # Init app 
@@ -9,6 +11,12 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 # Database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'db.sqlite') # look for db.sqlite
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Uploads settings
+app.config['UPLOADED_PHOTOS_DEST'] = os.path.join(basedir, 'static/images')
+photos = UploadSet('photos', IMAGES)
+configure_uploads(app, photos)
+
 # Intialise db 
 db = SQLAlchemy(app)
 # Initialise Marshmallow
@@ -107,6 +115,45 @@ def delete_product(id):
     db.session.commit()
 
     return product_schema.jsonify(product)
+
+#---------------------#
+# PHOTOS
+
+# Be able to Post photos, retrieve photos, and delete photos NOT DIRECTLY TO DATABASE (as a source URL?)
+@app.route('/photos', methods=['POST'])
+def upload_photo(): 
+    if 'photo' not in request.files:
+        return jsonify({'error': 'No photo uploaded.'}), 400
+
+    photo = request.files['photo']
+
+    if photo.filename == '': 
+        return jsonify({'error': 'No photo selected.'}), 400 
+    
+    if photo and photos.file_allowed(photo, photo.filename): 
+        filename = photos.save(photo)
+        photo_url = photos.url(filename)
+        return jsonify({'photo_url': photo_url})
+    else: 
+        return jsonify({'error': 'File not allowed.'}), 400 
+    
+# Download a photo 
+@app.route('/photos/<filename>', methods=['GET'])
+def download_photo(filename):
+    try:
+        return send_from_directory(app.config['UPLOADED_PHOTOS_DEST'], filename)
+    except FileNotFoundError:
+        return jsonify({'error': 'File not found.'}), 404
+
+# Delete a photo
+@app.route('/photos/<filename>', methods=['DELETE'])
+def delete_photo(filename):
+    filepath = os.path.join(app.config['UPLOADED_PHOTOS_DEST'], filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
+        return jsonify({'message': 'Photo deleted.'})
+    else:
+        return jsonify({'error': 'File not found.'}), 404
 
 # Run server
 if __name__ ==  '__main__':
