@@ -37,7 +37,7 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 3. Install the requred dependencies (this is needed for the app to run):
+### 3. Install the required dependencies (this is needed for the app to run):
 ```bash
 pip install -r requirements.txt
 ```
