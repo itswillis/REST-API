@@ -3,7 +3,14 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_uploads import UploadSet, configure_uploads, IMAGES
 
+
 import os
+import hashlib
+
+# Import models from models.py
+from models import db, Product
+# Import from user.py
+from user import User
 
 # Init app 
 app = Flask(__name__)
@@ -116,6 +123,19 @@ def delete_product(id):
 
     return product_schema.jsonify(product)
 
+
+
+# Helper function to generate unique hash for a photo 
+def generate_photo_hash(photo, user_id):
+    sha256 = hashlib.sha256()
+    sha256.update(photo.read())
+    sha256.update(str(user_id).encode('utf-8'))
+    photo_hash = sha256.hexdigest()
+    photo.seek(0)  # Reset file pointer to the beginning
+    return photo_hash
+
+
+
 #---------------------#
 # PHOTOS
 
@@ -136,8 +156,8 @@ def upload_photo():
         return jsonify({'photo_url': photo_url})
     else: 
         return jsonify({'error': 'File not allowed.'}), 400 
-    
-# Download a photo 
+
+# Download/GET photo source
 @app.route('/photos/<filename>', methods=['GET'])
 def download_photo(filename):
     try:
@@ -154,6 +174,7 @@ def delete_photo(filename):
         return jsonify({'message': 'Photo deleted.'})
     else:
         return jsonify({'error': 'File not found.'}), 404
+
 
 # Run server
 if __name__ ==  '__main__':
