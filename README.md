@@ -26,25 +26,26 @@ These instructions will help you set up the project on your local machine for de
 - Flask-Uploads
 
 ## Installation
-1. Clone the repo 
-```bash
+### 1. Clone the repo 
+```bash 
 git clone https://github.com/itswillis/REST-API.git
+```
 
-
-2. Create a virtual environment and activate it:
-
+### 2. Create a virtual environment and activate it:
+```bash
 python3 -m venv venv
 source venv/bin/activate
+```
 
-
-3. Install the requred dependencies (this is needed for the app to run):
+### 3. Install the requred dependencies (this is needed for the app to run):
+```bash
 pip install -r requirements.txt
+```
 
-
-4. Run the server: 
-
+### 4. Run the server: 
+```bash
 python3 app.py
-
+```
 
 The server should be running on 'http://localhost:5000'. 
 - Use `Postman` to test
