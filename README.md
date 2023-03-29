@@ -37,9 +37,9 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 3. Install the requred dependencies (this is needed for the app to run):
+### 3. Install the required dependencies (this is needed for the app to run):
 ```bash
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 ### 4. Run the server: 
@@ -50,4 +50,19 @@ python3 app.py
 The server should be running on 'http://localhost:5000'. 
 - Use `Postman` to test
 
+### 29/03/23
+- [] Handle registration errors (emails can not be empty... etc, throw errors)
+- [x] Add a login route that allows users to log in and receive a token for authorisation.
+- [x] Add a protected route decorator to restrict access to authorised users.
+- [x] Modify the photo upload route to store the user ID with each uploaded photo.
+- [] Add a route to get user info by user ID (the user can only see its own information).
+- [] Add another column to seperate 'users' and 'admin'. 
+
+#### Authentication Process 
+- The user logs in and receives an access_token.
+- The client-side application stores the access_token.
+- When making requests that require authentication, the client-side application includes the access_token in the Authorisation      header.
+
+#### Potential Bug Fixes
+- [] User should be able to 'GET' photos they 'PUT' -> not by their full <filename> but a hash key instead.
 
