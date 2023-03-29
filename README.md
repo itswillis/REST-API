@@ -65,4 +65,7 @@ The server should be running on 'http://localhost:5000'.
 
 #### Potential Bug Fixes
 - [] User should be able to 'GET' photos they 'PUT' -> not by their full <filename> but a hash key instead.
+- [] Each uploaded photo will be associated with a specific user based on their user_id. Check the 'POST' photos function.
+- [] Photos are in another path with 'GET' _uploads/photos/<filename>. 
+- [] Photos are not directly linked to the 'products' -> I don't think we want to. 
 
