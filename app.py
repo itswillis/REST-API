@@ -4,20 +4,25 @@ from flask_marshmallow import Marshmallow
 from flask_uploads import UploadSet, configure_uploads, IMAGES
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
-from datetime import datetime, timedelta
+from flask_migrate import Migrate
+from datetime import timedelta
 from functools import wraps
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_login import LoginManager # UserMixin, login_user, login_required, logout_user, current_user
 from email_validator import validate_email, EmailNotValidError
+from hashlib import md5
+import uuid
+from werkzeug.utils import secure_filename
+
 
 import os
 from dotenv import load_dotenv
 load_dotenv()
 
 # Import models from models.py
-from models import db, Product
+from models import db, Product, Photo
 
 # Import from user.py
-from user import User
+from models import User
 
 # Init app 
 app = Flask(__name__)
@@ -30,7 +35,7 @@ print(f"SECRET_KEY: {app.config['SECRET_KEY']}") #print secret key -> can delete
 
 # Uploads settings
 app.config['UPLOADED_PHOTOS_DEST'] = os.path.join(basedir, 'static/images')
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=1) # Set to 1-day for testing -> For production delete this due to security purposes
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours = 24) # Set to 1-day for testing -> For production delete this due to security purposes
 photos = UploadSet('photos', IMAGES)
 configure_uploads(app, photos)
 
@@ -38,6 +43,8 @@ configure_uploads(app, photos)
 ma = Marshmallow(app)
 # Intialise Bcrypt
 bcrypt = Bcrypt(app)
+# Intialise flask_migrate
+migrate = Migrate(app, db)
 
 # Initialise db with app 
 db.init_app(app)
@@ -157,69 +164,106 @@ def delete_product(id):
     return product_schema.jsonify(product)
 
 # PHOTOS
-
 # Be able to Post photos, retrieve photos, and delete photos NOT DIRECTLY TO DATABASE (as a source URL?)
 @app.route('/photos', methods=['POST'])
 @jwt_required()
 def upload_photo(): 
-    user_id = get_jwt_identity() # Replace this with the actual user_id from database
+    user_id = get_jwt_identity()
 
     if 'photo' not in request.files:
         return jsonify({'error': 'No photo uploaded.'}), 400
 
     photo = request.files['photo']
 
-    if photo.filename == '': 
-        return jsonify({'error': 'No photo selected.'}), 400 
-    
-    if photo and photos.file_allowed(photo, photo.filename): 
-        filename = photos.save(photo)
+    if photo.filename != '': 
+        unique_id = uuid.uuid4()
+        filename = f"{unique_id}_{secure_filename(photo.filename)}"
+        photo_path = os.path.join(app.config['UPLOADED_PHOTOS_DEST'], filename)
+
+        while os.path.exists(photo_path):
+            unique_id = uuid.uuid4()
+            filename = f"{unique_id}_{secure_filename(photo.filename)}"
+            photo_path = os.path.join(app.config['UPLOADED_PHOTOS_DEST'], filename)
+
+        filename = photos.save(photo, name=filename)
         photo_url = photos.url(filename)
-        return jsonify({'photo_url': photo_url, 'user_id': user_id})
+
+        new_photo = Photo(str(unique_id), filename, user_id)
+
+        db.session.add(new_photo)
+        db.session.commit()
+
+        return jsonify({'photo_uuid': str(unique_id), 'user_id': user_id})
     else: 
         return jsonify({'error': 'File not allowed.'}), 400 
-
-# Download/GET photo source
-@app.route('/photos/<filename>', methods=['GET'])
+    
+# Get all photos for a user
+@app.route('/photos', methods=['GET'])
 @jwt_required()
-def download_photo(filename):
+def get_all_photos():
     user_id = get_jwt_identity()
-    product = Product.query.filter_by(photo_filename=filename).first()
+    user_photos = Photo.query.filter_by(user_id=user_id).all()
 
-    if not product:
-        return jsonify({'error': 'Product not found.'}), 404
+    if not user_photos:
+        return jsonify({'error': 'No photos found.'}), 404
 
-    if product.user_id != user_id:
+    photos_list = []
+
+    for photo in user_photos:
+        photo_url = photos.url(photo.filename)  # Get the URL of the photo
+        photo_info = {
+            'photo_uuid': photo.uuid,
+            'filename': photo.filename,
+            'user_id': photo.user_id,
+            'photo_url': photo_url  # Include the URL in the response
+        }
+        photos_list.append(photo_info)
+
+    return jsonify(photos_list)
+
+
+# Get a specific photo  
+@app.route('/photos/uuid/<photo_uuid>', methods=['GET'])
+@jwt_required()
+def download_photo(photo_uuid):
+    user_id = get_jwt_identity()
+    photo = Photo.query.filter_by(uuid=photo_uuid).first()
+
+    if not photo:
+        return jsonify({'error': 'Photo not found.'}), 404
+
+    if photo.user_id != user_id:
         return jsonify({'error': 'Unauthorized access to photo.'}), 403
 
     try:
-        return send_from_directory(app.config['UPLOADED_PHOTOS_DEST'], filename)
+        return send_from_directory(app.config['UPLOADED_PHOTOS_DEST'], photo.filename)
     except FileNotFoundError:
         return jsonify({'error': 'File not found.'}), 404
     
 # Delete a photo
-@app.route('/photos/<filename>', methods=['DELETE'])
+@app.route('/photos/uuid/<photo_uuid>', methods=['DELETE'])
 @jwt_required()
-def delete_photo(filename):
+def delete_photo(photo_uuid):
     user_id = get_jwt_identity()
-    product = Product.query.filter_by(photo_filename=filename).first()
+    photo = Photo.query.filter_by(uuid=photo_uuid).first()
 
-    if not product:
-        return jsonify({'error': 'Product not found.'}), 404
+    if not photo:
+        return jsonify({'error': 'Photo not found.'}), 404
 
-    if product.user_id != user_id:
+    if photo.user_id != user_id:
         return jsonify({'error': 'Unauthorized access to photo.'}), 403
 
-    filepath = os.path.join(app.config['UPLOADED_PHOTOS_DEST'], filename)
+    filepath = os.path.join(app.config['UPLOADED_PHOTOS_DEST'], photo.filename)
     if os.path.exists(filepath):
         os.remove(filepath)
+        db.session.delete(photo)
+        db.session.commit()
         return jsonify({'message': 'Photo deleted.'})
     else:
         return jsonify({'error': 'File not found.'}), 404
 
 ''' Next steps to handle errors, emails must be valid, passwords can not be empty, emails can not be empty etc.'''
 # User registration
-@app.route('/register', methods=['POST'])
 @app.route('/register', methods=['POST'])
 def register_user():
     email = request.json['email']
