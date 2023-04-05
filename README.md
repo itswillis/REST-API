@@ -53,12 +53,11 @@ The server should be running on 'http://localhost:5000'.
 
 
 ### 29/03/23
-- [ ] Handle registration errors (emails can not be empty... etc, throw errors)
+- [x] Handle registration errors (emails can not be empty... etc, throw errors)
 - [x] Add a login route that allows users to log in and receive a token for authorisation.
 - [x] Add a protected route decorator to restrict access to authorised users.
 - [x] Modify the photo upload route to store the user ID with each uploaded photo.
-- [ ] Add a route to get user info by user ID (the user can only see its own information).
-- [ ] Add another column to seperate 'users' and 'admin'. 
+- [x] Add a route to get user info by user ID (the user can only see its own information).
 
 #### Authentication Process :key:
 - The user logs in and receives an access_token.
@@ -66,8 +65,9 @@ The server should be running on 'http://localhost:5000'.
 - When making requests that require authentication, the client-side application includes the access_token in the Authorisation      header.
 
 #### Potential Bug Fixes
-- [ ] User should be able to 'GET' photos they 'PUT' -> not by their full <filename> but a hash key instead.
-- [ ] Each uploaded photo will be associated with a specific user based on their user_id. Check the 'POST' photos function.
-- [ ] Photos are in another path with 'GET' _uploads/photos/<filename>. 
-- [ ] Photos are not directly linked to the 'products' -> I don't think we want to. 
+- [x] User should be able to 'GET' photos they 'PUT' -> not by their full <filename> but UUID instead.
+- [x] Each uploaded photo will be associated with a specific user based on their user_id. Check the 'POST' photos function.
+- [x] Updated database
 
+### 05/04/23
+- [ ] Software architecture
