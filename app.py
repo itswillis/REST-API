@@ -13,7 +13,6 @@ from hashlib import md5
 import uuid
 from werkzeug.utils import secure_filename
 
-
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -85,8 +84,22 @@ def add_product():
 
     # Check if the product with the same name already exists: 
     existing_product = Product.query.filter_by(name=name).first()
+
+    ## ERROR HANDLING
     if existing_product:
         return jsonify({'error': 'Product with the same name already exists.'}), 400
+    
+    if not name or len(name) > 100: 
+        return jsonify({'error': 'Product name should not be empty and must be less than 100 characters.'}), 400 
+    
+    if not description or len(description) > 500: 
+        return jsonify({'error': 'Product description should not be empty and must be less than 500 characters.'}), 400
+
+    if price < 0:
+        return jsonify({'error': 'Product price should be a positive number.'}), 400
+
+    if qty < 0 or not isinstance(qty, int):
+        return jsonify({'error': 'Product quantity should be a positive integer.'}), 400
 
     # Get user_id from the JWT access token 
     user_id = get_jwt_identity()
@@ -107,13 +120,12 @@ def get_products():
     result = products_schema.dump(all_products)
     return jsonify(result)
 
-
 # Get single products
 @app.route('/product/<id>', methods=['GET'])
 @jwt_required()
 def get_product(id):
     user_id = get_jwt_identity()
-    product = Product.query.filter_by(id=id, user_id=user_id).first()
+    product = Product.query.filter_by(id=id, user_id=user_id).first() # Check if it belongs with the user. 
 
     if not product:
         return jsonify({'error': 'Product not found or not authorized to access.'}), 404
@@ -167,7 +179,7 @@ def delete_product(id):
 # Be able to Post photos, retrieve photos, and delete photos NOT DIRECTLY TO DATABASE (as a source URL?)
 @app.route('/photos', methods=['POST'])
 @jwt_required()
-def upload_photo(): 
+def upload_photo():
     user_id = get_jwt_identity()
 
     if 'photo' not in request.files:
@@ -175,28 +187,30 @@ def upload_photo():
 
     photo = request.files['photo']
 
-    if photo.filename != '': 
+    if photo.filename != '':
         unique_id = uuid.uuid4()
         filename = f"{unique_id}_{secure_filename(photo.filename)}"
-        photo_path = os.path.join(app.config['UPLOADED_PHOTOS_DEST'], filename)
+        user_folder = os.path.join(app.config['UPLOADED_PHOTOS_DEST'], str(user_id))
+        os.makedirs(user_folder, exist_ok=True)
+        photo_path = os.path.join(user_folder, filename)
 
         while os.path.exists(photo_path):
             unique_id = uuid.uuid4()
             filename = f"{unique_id}_{secure_filename(photo.filename)}"
-            photo_path = os.path.join(app.config['UPLOADED_PHOTOS_DEST'], filename)
+            photo_path = os.path.join(user_folder, filename)
 
-        filename = photos.save(photo, name=filename)
-        photo_url = photos.url(filename)
+        photo.save(photo_path)
+        server_photo_url = url_for('serve_photo', user_id=user_id, filename=filename, _external=True)
 
         new_photo = Photo(str(unique_id), filename, user_id)
 
         db.session.add(new_photo)
         db.session.commit()
 
-        return jsonify({'photo_uuid': str(unique_id), 'user_id': user_id})
-    else: 
-        return jsonify({'error': 'File not allowed.'}), 400 
-    
+        return jsonify({'photo_uuid': str(unique_id), 'user_id': user_id, 'server_photo_url': server_photo_url})
+    else:
+        return jsonify({'error': 'File not allowed.'}), 400
+
 # Get all photos for a user
 @app.route('/photos', methods=['GET'])
 @jwt_required()
@@ -210,7 +224,7 @@ def get_all_photos():
     photos_list = []
 
     for photo in user_photos:
-        photo_url = photos.url(photo.filename)  # Get the URL of the photo
+        photo_url = url_for('serve_photo', user_id=user_id, filename=photo.filename, _external=True)  # Get the URL of the photo
         photo_info = {
             'photo_uuid': photo.uuid,
             'filename': photo.filename,
@@ -221,11 +235,15 @@ def get_all_photos():
 
     return jsonify(photos_list)
 
+# SERVER PHOTO
+@app.route('/photos/<int:user_id>/<filename>', methods=['GET'])
+def serve_photo(user_id, filename):
+    return send_from_directory(os.path.join(app.config['UPLOADED_PHOTOS_DEST'], str(user_id)), filename)
 
-# Get a specific photo  
+# Get a specific photo by UUID
 @app.route('/photos/uuid/<photo_uuid>', methods=['GET'])
 @jwt_required()
-def download_photo(photo_uuid):
+def get_photo_by_uuid(photo_uuid):
     user_id = get_jwt_identity()
     photo = Photo.query.filter_by(uuid=photo_uuid).first()
 
@@ -235,10 +253,7 @@ def download_photo(photo_uuid):
     if photo.user_id != user_id:
         return jsonify({'error': 'Unauthorized access to photo.'}), 403
 
-    try:
-        return send_from_directory(app.config['UPLOADED_PHOTOS_DEST'], photo.filename)
-    except FileNotFoundError:
-        return jsonify({'error': 'File not found.'}), 404
+    return serve_photo(photo.user_id, photo.filename)  # Use serve_photo function
     
 # Delete a photo
 @app.route('/photos/uuid/<photo_uuid>', methods=['DELETE'])
@@ -268,6 +283,9 @@ def delete_photo(photo_uuid):
 def register_user():
     email = request.json['email']
     password = request.json['password']
+
+    if not email: 
+        return jsonify({'error': 'Email should not be empty.'}), 400
 
     # Validate email
     try:
