@@ -50,7 +50,6 @@ python3 app.py
 The server should be running on 'http://localhost:5000'. 
 - Use `Postman` to test
 
-
 ### 29/03/23
 - [x] Handle registration errors (emails can not be empty... etc, throw errors)
 - [x] Add a login route that allows users to log in and receive a token for authorisation.
@@ -69,12 +68,6 @@ The server should be running on 'http://localhost:5000'.
 - /photos/<int:user_id>/<filename> GET endpoint -> serves a specific photo by user ID and filename. It directly serves the file from the static/images directory.
 - /photos/uuid/<photo_uuid> GET endpoint -> retrieves a specific photo by UUID. It queries the photo from the database and uses the serve_photo function to serve the photo.
 - /photos/uuid/<photo_uuid> DELETE endpoint: Deletes a specific photo by UUID. It removes the photo from the database and the filesystem.
-
-#### Potential Bug Fixes
-- [ ] User should be able to 'GET' photos they 'PUT' -> not by their full <filename> but a hash key instead.
-- [ ] Each uploaded photo will be associated with a specific user based on their user_id. Check the 'POST' photos function.
-- [ ] Photos are in another path with 'GET' _uploads/photos/<filename>. 
-- [ ] Photos are not directly linked to the 'products' -> I don't think we want to. 
 
 ### 05/04/23
 - [ ] Software architecture
