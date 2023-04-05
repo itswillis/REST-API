@@ -25,7 +25,7 @@ These instructions will help you set up the project on your local machine for de
 - Flask-Marshmallow
 - Flask-Uploads
 
-## Installation
+## Installation :rocket:
 ### 1. Clone the repo 
 ```bash 
 git clone https://github.com/itswillis/REST-API.git
@@ -51,23 +51,31 @@ The server should be running on 'http://localhost:5000'.
 - Use `Postman` to test
 
 
-
 ### 29/03/23
-- [ ] Handle registration errors (emails can not be empty... etc, throw errors)
+- [x] Handle registration errors (emails can not be empty... etc, throw errors)
 - [x] Add a login route that allows users to log in and receive a token for authorisation.
 - [x] Add a protected route decorator to restrict access to authorised users.
 - [x] Modify the photo upload route to store the user ID with each uploaded photo.
-- [ ] Add a route to get user info by user ID (the user can only see its own information).
-- [ ] Add another column to seperate 'users' and 'admin'. 
+- [x] Add a route to get user info by user ID (the user can only see its own information).
 
 #### Authentication Process :key:
 - The user logs in and receives an access_token.
 - The client-side application stores the access_token.
 - When making requests that require authentication, the client-side application includes the access_token in the Authorisation      header.
 
+#### PHOTOS Feature :camera_flash:
+- `/photos` POST endpoint -> allows users to upload a photo. The photo is saved in the user's folder with a unique UUID as part of the file name. A new 'Photo' object is created and stored in the database with the UUID, filename, and user ID. 
+- `/photos` GET endpoint -> retrieves all the photos uploaded by the user. It constructs the photo URL for each photo and includes it in the response. 
+- /photos/<int:user_id>/<filename> GET endpoint -> serves a specific photo by user ID and filename. It directly serves the file from the static/images directory.
+- /photos/uuid/<photo_uuid> GET endpoint -> retrieves a specific photo by UUID. It queries the photo from the database and uses the serve_photo function to serve the photo.
+- /photos/uuid/<photo_uuid> DELETE endpoint: Deletes a specific photo by UUID. It removes the photo from the database and the filesystem.
+
 #### Potential Bug Fixes
-- [ ] User should be able to 'GET' photos they 'PUT' -> not by their full <filename> but a hash key instead.
-- [ ] Each uploaded photo will be associated with a specific user based on their user_id. Check the 'POST' photos function.
-- [ ] Photos are in another path with 'GET' _uploads/photos/<filename>. 
-- [ ] Photos are not directly linked to the 'products' -> I don't think we want to. 
+- [x] User should be able to 'GET' photos they 'PUT' -> not by their full <filename> but UUID instead.
+- [x] Each uploaded photo will be associated with a specific user based on their user_id. Check the 'POST' photos function.
+- [x] Updated database
+
+### 05/04/23
+- [ ] Software architecture
+
 
