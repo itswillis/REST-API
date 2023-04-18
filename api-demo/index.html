@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en"> 
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="html.png">
+    <link rel="stylesheet" type="text/css" href="style.css" />
+    <title>API</title>
+    <script src="main.js"></script>
+</head>
+<body>
+    <h1>Simple API Demo</h1>
+
+<!-- Register Form -->
+<div id="register-form">
+    <h2>Register</h2>
+    <p>Please fill in this form to create an account</p>
+    <label for="register-email">Email:</label>
+    <input type="email" placeholder="Enter Email" name="email" id="register-email" required />
+    <br />
+    <label for="register-password">Password:</label>
+    <input type="password" placeholder="Enter Password" name="password" id="register-password" required />
+    <br />
+    <button class="btn" onclick="register()">Register</button>
+    <!--<p>Already have an account? <a href="#" onclick="toggleForms()">Log in here</a>.</p> -->
+</div> 
+
+    <!-- Login Form -->
+<div id="login-form">
+    <h2>Login</h2>
+    <p>Please fill in this form to log in to an account</p>
+    <label for ="login-email">Email:</label>
+    <input type="email" placeholder="Enter Email" name="email" id="login-email" required />
+    <br /> 
+    <label for ="login-password">Password:</label>
+    <input type="password" placeholder="Enter Password" name="password" id="login-password" required />
+    <p id="error" style="display: none; color: red;"></p>
+    <br />
+    <button class="btn" onclick="login()">Login</button>
+    <!--<p>Don't have an account? <a href="#" onclick="toggleForms()">Register here</a>.</p> -->
+</div>
+
+    <!-- Photo Handling -->
+    <div id="photo-selection" style="display: none;">
+        <h2>Send Photo</h2>
+        <input type="file" id="photo-upload" />
+        <button onclick="sendPhoto()">Upload</button>
+
+        <h2>Retrieve Photos</h2>
+        <button onclick="getPhotos()">Get Photos</button>
+        <div id="photo-list">
+        </div>
+    </div>
+    <div id="photo-list"></div>
+</body>
+</html>
