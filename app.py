@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory, url_for
+from flask import Flask, request, jsonify, send_from_directory, url_for, render_template, redirect
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_uploads import UploadSet, configure_uploads, IMAGES
@@ -27,7 +27,6 @@ from models import User
 app = Flask(__name__)
 #CORS
 from flask_cors import CORS
-CORS(app)
 basedir = os.path.abspath(os.path.dirname(__file__))
 # Database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'db.sqlite') # look for db.sqlite
@@ -210,9 +209,13 @@ def upload_photo():
         db.session.add(new_photo)
         db.session.commit()
 
-        return jsonify({'photo_uuid': str(unique_id), 'user_id': user_id, 'server_photo_url': server_photo_url})
+        response = jsonify({'photo_uuid': str(unique_id), 'user_id': user_id, 'server_photo_url': server_photo_url})
+        response.headers.add('Access-Control-Allow-Origin', 'http://127.0.0.1:8081')
+        return response
     else:
-        return jsonify({'error': 'File not allowed.'}), 400
+        response = jsonify({'error': 'File not allowed.'})
+        response.headers.add('Access-Control-Allow-Origin', 'http://127.0.0.1:8081')
+        return response, 400
 
 # Get all photos for a user
 @app.route('/photos', methods=['GET'])
@@ -222,7 +225,9 @@ def get_all_photos():
     user_photos = Photo.query.filter_by(user_id=user_id).all()
 
     if not user_photos:
-        return jsonify({'error': 'No photos found.'}), 404
+        response = jsonify({'error': 'No photos found.'})
+        response.headers.add('Access-Control-Allow-Origin', 'http://127.0.0.1:8081')
+        return response, 404
 
     photos_list = []
 
@@ -236,7 +241,9 @@ def get_all_photos():
         }
         photos_list.append(photo_info)
 
-    return jsonify(photos_list)
+        response = jsonify(photos_list)
+        response.headers.add('Access-Control-Allow-Origin', 'http://127.0.0.1:8081')
+        return response
 
 # SERVER PHOTO
 @app.route('/photos/<int:user_id>/<filename>', methods=['GET'])
@@ -352,7 +359,12 @@ def user_required(fn):
 def get_user_info(user):
     return jsonify({'id': user.id, 'email': user.email})
 
-CORS(app, origins=["http://127.0.0.1:8080"])
+@app.route('/photos', methods=['GET'])
+@jwt_required()
+def photos_page():
+    return render_template('photos.html')
+
+CORS(app, resources={r"*": {"origins": "http://127.0.0.1:8081"}})
 
 # Run server
 if __name__ ==  '__main__':

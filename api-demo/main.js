@@ -38,6 +38,7 @@ async function register() {
 }
 
 async function login() {
+    console.log("Login function called")
     try {
         const email = document.getElementById("login-email").value;
         const password = document.getElementById("login-password").value;
@@ -63,80 +64,15 @@ async function login() {
 
         const data = await response.json();
         console.log("Login successful:", data);
-        
+
         // Store the access token
         accessToken = data.access_token;
 
-        // Handle successful login, e.g., navigate to a different page or show a success message
+        // Redirect to the photos page
+        window.location.href = "photos.html";
 
     } catch (error) {
         console.error("Error:", error);
         // Handle error in a user-friendly manner
     }
 }
-
-async function sendPhoto() {
-    const photoInput = document.getElementById('photo-upload');
-    const photo = photoInput.files[0];
-
-    if (!photo) {
-        alert('No photo selected');
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append('photo', photo);
-
-    try {
-        const response = await fetch('http://127.0.0.1:5000/photos', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-            },
-            body: formData,
-        });
-
-        if (!response.ok) {
-            throw new Error(`Error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('Photo uploaded:', data);
-        alert('Photo uploaded successfully');
-    } catch (error) {
-        console.error('Error:', error);
-    }
-}
-
-async function getPhotos() {
-    try {
-      const response = await fetch('http://127.0.0.1:5000/photos', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-  
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
-      }
-  
-      const data = await response.json();
-      const photoList = document.getElementById('photo-list');
-      photoList.innerHTML = ''; // Clear the photo list
-  
-      data.forEach((photo) => {
-        const img = document.createElement('img');
-        img.src = `http://127.0.0.1:5000${photo.photo_url}`;
-        img.alt = photo.filename; // Set the alt attribute of the image
-        img.width = 200; // Set the width of the image, adjust as needed
-        img.height = 200; // Set the height of the image, adjust as needed
-        img.style.margin = '10px'; // Add some margin around the images
-  
-        photoList.appendChild(img);
-      });
-    } catch (error) {
-      console.error('Error:', error);
-    }
-}
-
-

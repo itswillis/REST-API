@@ -7,7 +7,6 @@
     <link rel="icon" type="image/x-icon" href="html.png">
     <link rel="stylesheet" type="text/css" href="style.css" />
     <title>API</title>
-    <script src="main.js"></script>
 </head>
 <body>
     <h1>Simple API Demo</h1>
@@ -23,11 +22,10 @@
     <input type="password" placeholder="Enter Password" name="password" id="register-password" required />
     <br />
     <button class="btn" onclick="register()">Register</button>
-    <!--<p>Already have an account? <a href="#" onclick="toggleForms()">Log in here</a>.</p> -->
 </div> 
 
-    <!-- Login Form -->
-<div id="login-form">
+<!-- Login Form -->
+<form id="login-form">
     <h2>Login</h2>
     <p>Please fill in this form to log in to an account</p>
     <label for ="login-email">Email:</label>
@@ -37,21 +35,8 @@
     <input type="password" placeholder="Enter Password" name="password" id="login-password" required />
     <p id="error" style="display: none; color: red;"></p>
     <br />
-    <button class="btn" onclick="login()">Login</button>
-    <!--<p>Don't have an account? <a href="#" onclick="toggleForms()">Register here</a>.</p> -->
-</div>
-
-    <!-- Photo Handling -->
-    <div id="photo-selection" style="display: none;">
-        <h2>Send Photo</h2>
-        <input type="file" id="photo-upload" />
-        <button onclick="sendPhoto()">Upload</button>
-
-        <h2>Retrieve Photos</h2>
-        <button onclick="getPhotos()">Get Photos</button>
-        <div id="photo-list">
-        </div>
-    </div>
-    <div id="photo-list"></div>
+    <button class="btn" id="login-button" type="button" onclick="login()">Login</button>
+</form>
+<script src="main.js"></script>
 </body>
 </html>
