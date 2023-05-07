@@ -12,7 +12,7 @@ from email_validator import validate_email, EmailNotValidError
 from hashlib import md5
 import uuid
 from werkzeug.utils import secure_filename
-
+from flask_jwt_extended.exceptions import JWTDecodeError
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -23,10 +23,12 @@ from models import db, Product, Photo
 # Import from user.py
 from models import User
 
-# Init app 
-app = Flask(__name__)
-#CORS
 from flask_cors import CORS
+# Init app 
+
+app = Flask(__name__)
+CORS(app, supports_credentials=True, resources={r"*": {"origins": "http://127.0.0.1:8080"}})
+
 basedir = os.path.abspath(os.path.dirname(__file__))
 # Database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'db.sqlite') # look for db.sqlite
@@ -184,38 +186,43 @@ def delete_product(id):
 def upload_photo():
     user_id = get_jwt_identity()
 
+    print("Request headers:", request.headers)
+    print("Access token:", request.headers.get("Authorization"))
+
     if 'photo' not in request.files:
         return jsonify({'error': 'No photo uploaded.'}), 400
 
     photo = request.files['photo']
 
-    if photo.filename != '':
+    if photo.filename == '':
+        response = jsonify({'error': f'File not allowed. Filename: {photo.filename}'})
+        return response, 422
+
+    unique_id = uuid.uuid4()
+    filename = f"{unique_id}_{secure_filename(photo.filename)}"
+    user_folder = os.path.join(app.config['UPLOADED_PHOTOS_DEST'], str(user_id))
+    os.makedirs(user_folder, exist_ok=True)
+    photo_path = os.path.join(user_folder, filename)
+
+    while os.path.exists(photo_path):
         unique_id = uuid.uuid4()
         filename = f"{unique_id}_{secure_filename(photo.filename)}"
-        user_folder = os.path.join(app.config['UPLOADED_PHOTOS_DEST'], str(user_id))
-        os.makedirs(user_folder, exist_ok=True)
         photo_path = os.path.join(user_folder, filename)
-
-        while os.path.exists(photo_path):
-            unique_id = uuid.uuid4()
-            filename = f"{unique_id}_{secure_filename(photo.filename)}"
-            photo_path = os.path.join(user_folder, filename)
-
+    try:
         photo.save(photo_path)
-        server_photo_url = url_for('serve_photo', user_id=user_id, filename=filename, _external=True)
+    except Exception as e: 
+        response = jsonify({'error': f'Error saving file: {str(e)}'})
+        return response, 500
 
-        new_photo = Photo(str(unique_id), filename, user_id)
+    server_photo_url = url_for('serve_photo', user_id=user_id, filename=filename, _external=True)
 
-        db.session.add(new_photo)
-        db.session.commit()
+    new_photo = Photo(str(unique_id), filename, user_id)
 
-        response = jsonify({'photo_uuid': str(unique_id), 'user_id': user_id, 'server_photo_url': server_photo_url})
-        response.headers.add('Access-Control-Allow-Origin', 'http://127.0.0.1:8081')
-        return response
-    else:
-        response = jsonify({'error': 'File not allowed.'})
-        response.headers.add('Access-Control-Allow-Origin', 'http://127.0.0.1:8081')
-        return response, 400
+    db.session.add(new_photo)
+    db.session.commit()
+
+    response = jsonify({'photo_uuid': str(unique_id), 'user_id': user_id, 'server_photo_url': server_photo_url})
+    return response
 
 # Get all photos for a user
 @app.route('/photos', methods=['GET'])
@@ -226,7 +233,6 @@ def get_all_photos():
 
     if not user_photos:
         response = jsonify({'error': 'No photos found.'})
-        response.headers.add('Access-Control-Allow-Origin', 'http://127.0.0.1:8081')
         return response, 404
 
     photos_list = []
@@ -242,7 +248,6 @@ def get_all_photos():
         photos_list.append(photo_info)
 
         response = jsonify(photos_list)
-        response.headers.add('Access-Control-Allow-Origin', 'http://127.0.0.1:8081')
         return response
 
 # SERVER PHOTO
@@ -287,7 +292,6 @@ def delete_photo(photo_uuid):
     else:
         return jsonify({'error': 'File not found.'}), 404
 
-''' Next steps to handle errors, emails must be valid, passwords can not be empty, emails can not be empty etc.'''
 # User registration
 @app.route('/register', methods=['POST'])
 def register_user():
@@ -320,6 +324,12 @@ def register_user():
     db.session.commit()
 
     return jsonify({'message': 'User registered successfully.'})
+
+# Add a new error handler to print JWT decode errors
+@app.errorhandler(JWTDecodeError)
+def handle_jwt_decode_error(e):
+    print("JWT decode error:", str(e))
+    return jsonify({'msg': 'Not enough segments'}), 422
 
 # Initialize JWT with app
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')
@@ -363,8 +373,6 @@ def get_user_info(user):
 @jwt_required()
 def photos_page():
     return render_template('photos.html')
-
-CORS(app, resources={r"*": {"origins": "http://127.0.0.1:8081"}})
 
 # Run server
 if __name__ ==  '__main__':

@@ -20,7 +20,6 @@ async function register() {
         if (response.status === 400) {
             const data = await response.json();
             console.error('Registration failed:', data.message);
-            // You can display the error message to the user using the DOM or alert
             alert(data.message);
             return;
         }
@@ -65,9 +64,9 @@ async function login() {
         const data = await response.json();
         console.log("Login successful:", data);
 
-        // Store the access token
-        accessToken = data.access_token;
-
+        // Store the access token in localStorage
+        localStorage.setItem('accessToken', data.access_token);
+        
         // Redirect to the photos page
         window.location.href = "photos.html";
 
