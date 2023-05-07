@@ -15,6 +15,10 @@ from werkzeug.utils import secure_filename
 from flask_jwt_extended.exceptions import JWTDecodeError
 import os
 from dotenv import load_dotenv
+from datetime import datetime
+import pytz
+import os
+
 load_dotenv()
 
 # Import models from models.py
@@ -187,9 +191,6 @@ def delete_product(id):
 def upload_photo():
     user_id = get_jwt_identity()
 
-    print("Request headers:", request.headers)
-    print("Access token:", request.headers.get("Authorization"))
-
     if 'photo' not in request.files:
         return jsonify({'error': 'No photo uploaded.'}), 400
 
@@ -201,7 +202,14 @@ def upload_photo():
 
     unique_id = uuid.uuid4()
     filename = f"{unique_id}_{secure_filename(photo.filename)}"
-    user_folder = os.path.join(app.config['UPLOADED_PHOTOS_DEST'], str(user_id))
+    
+    # Get the current date and time in the format you wanted
+    now = datetime.now()
+    year = now.year % 100
+    day_of_year = now.timetuple().tm_yday
+    date_folder = f"{year}{day_of_year}"
+    
+    user_folder = os.path.join(app.config['UPLOADED_PHOTOS_DEST'], str(user_id), date_folder)
     os.makedirs(user_folder, exist_ok=True)
     photo_path = os.path.join(user_folder, filename)
 
@@ -215,7 +223,7 @@ def upload_photo():
         response = jsonify({'error': f'Error saving file: {str(e)}'})
         return response, 500
 
-    photo_url = url_for('serve_photo', user_id=user_id, filename=filename, _external=True)
+    photo_url = url_for('serve_photo', user_id=user_id, date_folder=date_folder, filename=filename, _external=True)
 
     new_photo = Photo(str(unique_id), filename, user_id)
 
@@ -251,11 +259,10 @@ def get_all_photos():
     response = jsonify(photos_list)  # Move the response outside the loop
     return response
 
-
 # Serving images
-@app.route('/photos/<int:user_id>/<filename>', methods=['GET'])
-def serve_photo(user_id, filename):
-    return send_from_directory(os.path.join(app.config['UPLOADED_PHOTOS_DEST'], str(user_id)), filename)
+@app.route('/photos/<int:user_id>/<date_folder>/<filename>', methods=['GET'])
+def serve_photo(user_id, date_folder, filename):
+    return send_from_directory(os.path.join(app.config['UPLOADED_PHOTOS_DEST'], str(user_id), date_folder), filename)
 
 # Get a specific photo by UUID
 @app.route('/photos/uuid/<photo_uuid>', methods=['GET'])
@@ -293,6 +300,32 @@ def delete_photo(photo_uuid):
         return jsonify({'message': 'Photo deleted.'})
     else:
         return jsonify({'error': 'File not found.'}), 404
+
+# Delete all photos
+@app.route('/photos', methods=['DELETE'])
+@jwt_required()
+def delete_all_photos():
+    user_id = get_jwt_identity()
+    user_photos = Photo.query.filter_by(user_id=user_id).all()
+
+    if not user_photos:
+        response = jsonify({'error': 'No photos found.'})
+        return response, 404
+
+    for photo in user_photos:
+        # Delete the photo file from the server
+        photo_path = os.path.join(app.config['UPLOADED_PHOTOS_DEST'], str(user_id), photo.filename)
+        if os.path.exists(photo_path):
+            os.remove(photo_path)
+
+        # Delete the photo record from the database
+        db.session.delete(photo)
+
+    # Commit the changes to the database
+    db.session.commit()
+
+    response = jsonify({'message': 'All photos deleted successfully.'})
+    return response
 
 # User registration
 @app.route('/register', methods=['POST'])
@@ -341,16 +374,23 @@ jwt = JWTManager(app)
 def login():
     email = request.json['email']
     password = request.json['password']
+    print(f"Login attempt: email={email}, password={password}")  # Debugging print statement
     user = User.query.filter_by(email=email).first()
 
-    if user and bcrypt.check_password_hash(user.password, password):
-        access_token = create_access_token(identity=user.id, expires_delta=timedelta(minutes=15))
-        return jsonify({
-            'access_token': access_token,
-            'message': 'Login successful'
-        }), 200
+    if user:
+        print(f"User found: id={user.id}, email={user.email}")  # Debugging print statement
+        if bcrypt.check_password_hash(user.password, password):
+            access_token = create_access_token(identity=user.id, expires_delta=timedelta(minutes=15))
+            return jsonify({
+                'access_token': access_token,
+                'message': 'Login successful'
+            }), 200
+        else:
+            print("Password check failed")  # Debugging print statement
     else:
-        return jsonify({'message': 'Invalid email or password'}), 401
+        print("User not found")  # Debugging print statement
+
+    return jsonify({'message': 'Invalid email or password'}), 401
 
 def user_required(fn):
     @wraps(fn)
