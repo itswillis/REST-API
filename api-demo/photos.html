@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Photos</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <h1>Photos</h1>
@@ -11,7 +12,11 @@
         <input type="file" name="photo" id="photo" accept="image/*">
         <button type="submit">Upload</button>
     </form>
-    <div id="photos-container"></div>
+
+    <h2>Recently Uploaded</h2>
+    <div id="photos-container" class="photo-grid"></div>
+
+    <button id="retrieve-photos">Retrieve All Photos</button>
 
     <script src="main.js"></script>
     <script src="photos.js"></script>

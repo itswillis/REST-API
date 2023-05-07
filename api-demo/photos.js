@@ -1,37 +1,3 @@
-async function getPhotos() {
-  try {
-    console.log('Access token in submit:', accessToken);
-    const response = await fetch('http://127.0.0.1:5000/photos', {
-        method: 'POST',
-        headers: {
-            Authorization: `Bearer ${accessToken}`, // Use the accessToken variable instead of localStorage
-        },
-        body: formData,
-    });    
-
-    if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const photoList = document.getElementById('photo-list');
-    photoList.innerHTML = ''; // Clear the photo list
-
-    data.forEach((photo) => {
-      const img = document.createElement('img');
-      img.src = `http://127.0.0.1:5000${photo.photo_url}`;
-      img.alt = photo.filename; // Set the alt attribute of the image
-      img.width = 200; // Set the width of the image, adjust as needed
-      img.height = 200; // Set the height of the image, adjust as needed
-      img.style.margin = '10px'; // Add some margin around the images
-
-      photoList.appendChild(img);
-    });
-  } catch (error) {
-    console.error('Error:', error);
-  }
-};
-
 document.getElementById('upload-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const photoInput = document.getElementById('photo');
@@ -64,12 +30,65 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
       console.log(result);
 
       const photosContainer = document.getElementById('photos-container');
+      const photoItem = document.createElement('div');
+      photoItem.className = 'photo-item';
+
       const img = document.createElement('img');
       img.src = result.server_photo_url;
       img.width = 200;
       img.height = 200;
-      photosContainer.appendChild(img);
+      photoItem.appendChild(img);
+
+      const photoUUID = document.createElement('span');
+      photoUUID.textContent = `UUID: ${result.photo_uuid}`;
+      photoItem.appendChild(photoUUID);
+
+      photosContainer.appendChild(photoItem);
   } catch (error) {
       console.error('Error', error);
   }
 });
+
+document.getElementById('retrieve-photos').addEventListener('click', retrieveAllPhotos);
+
+async function retrieveAllPhotos() {
+  const accessToken = localStorage.getItem('accessToken'); // Retrieve the access token from localStorage
+
+  try {
+      const response = await fetch('http://127.0.0.1:5000/photos', {
+          method: 'GET',
+          headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`,
+          },
+      });
+
+      if (!response.ok) {
+          throw new Error(`Error: ${response.status}`);
+      }
+
+      const photos = await response.json();
+      const photosContainer = document.getElementById('photos-container');
+      photosContainer.innerHTML = ''; // Clear existing photos
+
+      photos.forEach(photo => {
+          const photoItem = document.createElement('div');
+          photoItem.className = 'photo-item';
+
+          const img = document.createElement('img');
+          img.src = photo.photo_url;
+          img.width = 200;
+          img.height = 200;
+          photoItem.appendChild(img);
+
+          const photoUUID = document.createElement('span');
+          photoUUID.textContent = `UUID: ${photo.photo_uuid}`;
+          photoItem.appendChild(photoUUID);
+
+          photosContainer.appendChild(photoItem);
+      });
+
+  } catch (error) {
+      console.error('Error:', error);
+  }
+}

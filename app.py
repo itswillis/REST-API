@@ -23,11 +23,11 @@ from models import db, Product, Photo
 # Import from user.py
 from models import User
 
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 # Init app 
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True, resources={r"*": {"origins": "http://127.0.0.1:8080"}})
+CORS(app, supports_credentials=True)
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 # Database
@@ -183,6 +183,7 @@ def delete_product(id):
 # Be able to Post photos, retrieve photos, and delete photos NOT DIRECTLY TO DATABASE (as a source URL?)
 @app.route('/photos', methods=['POST'])
 @jwt_required()
+@cross_origin(supports_credentials=True)
 def upload_photo():
     user_id = get_jwt_identity()
 
@@ -214,14 +215,14 @@ def upload_photo():
         response = jsonify({'error': f'Error saving file: {str(e)}'})
         return response, 500
 
-    server_photo_url = url_for('serve_photo', user_id=user_id, filename=filename, _external=True)
+    photo_url = url_for('serve_photo', user_id=user_id, filename=filename, _external=True)
 
     new_photo = Photo(str(unique_id), filename, user_id)
 
     db.session.add(new_photo)
     db.session.commit()
 
-    response = jsonify({'photo_uuid': str(unique_id), 'user_id': user_id, 'server_photo_url': server_photo_url})
+    response = jsonify({'photo_uuid': str(unique_id), 'user_id': user_id, 'server_photo_url': photo_url})
     return response
 
 # Get all photos for a user
@@ -247,10 +248,11 @@ def get_all_photos():
         }
         photos_list.append(photo_info)
 
-        response = jsonify(photos_list)
-        return response
+    response = jsonify(photos_list)  # Move the response outside the loop
+    return response
 
-# SERVER PHOTO
+
+# Serving images
 @app.route('/photos/<int:user_id>/<filename>', methods=['GET'])
 def serve_photo(user_id, filename):
     return send_from_directory(os.path.join(app.config['UPLOADED_PHOTOS_DEST'], str(user_id)), filename)
