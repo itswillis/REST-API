@@ -203,7 +203,7 @@ def upload_photo():
     unique_id = uuid.uuid4()
     filename = f"{unique_id}_{secure_filename(photo.filename)}"
     
-    # Get the current date and time in the format you wanted
+    # Get the current date and time in the format (yr-day_of_year)
     now = datetime.now()
     year = now.year % 100
     day_of_year = now.timetuple().tm_yday
