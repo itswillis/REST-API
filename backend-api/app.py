@@ -18,8 +18,11 @@ from dotenv import load_dotenv
 from datetime import datetime
 import pytz
 import os
-
+from pyngrok import ngrok
 load_dotenv()
+
+public_url = ngrok.connect(5000).public_url
+print(public_url)
 
 # Import models from models.py
 from models import db, Product, Photo
@@ -31,7 +34,7 @@ from flask_cors import CORS, cross_origin
 # Init app 
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True)
+CORS(app, supports_credentials=True, resources={r"*": {"origins": "*"}})
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 # Database
@@ -415,6 +418,10 @@ def get_user_info(user):
 @jwt_required()
 def photos_page():
     return render_template('photos.html')
+
+@app.route('/')
+def home():
+    return render_template('index.html')
 
 # Run server
 if __name__ ==  '__main__':
