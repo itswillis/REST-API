@@ -18,11 +18,6 @@ from dotenv import load_dotenv
 from datetime import datetime
 import pytz
 import os
-from pyngrok import ngrok
-load_dotenv()
-
-public_url = ngrok.connect(5000).public_url
-print(public_url)
 
 # Import models from models.py
 from models import db, Product, Photo
@@ -250,16 +245,18 @@ def get_all_photos():
     photos_list = []
 
     for photo in user_photos:
-        photo_url = url_for('serve_photo', user_id=user_id, filename=photo.filename, _external=True)  # Get the URL of the photo
+        # You need to determine the date_folder for each photo
+        date_folder = '...'  # replace ... with the correct value
+        photo_url = url_for('serve_photo', user_id=user_id, date_folder=date_folder, filename=photo.filename, _external=True) 
         photo_info = {
             'photo_uuid': photo.uuid,
             'filename': photo.filename,
             'user_id': photo.user_id,
-            'photo_url': photo_url  # Include the URL in the response
+            'photo_url': photo_url
         }
         photos_list.append(photo_info)
 
-    response = jsonify(photos_list)  # Move the response outside the loop
+    response = jsonify(photos_list)
     return response
 
 # Serving images
