@@ -2,8 +2,6 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
-from datetime import datetime
-from sqlalchemy import Date
 
 # Initialize db
 db = SQLAlchemy()
@@ -42,7 +40,6 @@ class Photo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     uuid = db.Column(db.String, unique=True, nullable=False)
     filename = db.Column(db.String, unique=True, nullable=False)
-    date_folder = db.Column(Date, default=datetime.utcnow) 
     user_id = db.Column(db.Integer, ForeignKey('user.id'), nullable=False)
     user = relationship("User", back_populates="photos")
 

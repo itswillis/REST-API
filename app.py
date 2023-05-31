@@ -19,6 +19,8 @@ from datetime import datetime
 import pytz
 import os
 
+load_dotenv()
+
 # Import models from models.py
 from models import db, Product, Photo
 
@@ -29,7 +31,7 @@ from flask_cors import CORS, cross_origin
 # Init app 
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True, resources={r"*": {"origins": "*"}})
+CORS(app, supports_credentials=True)
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 # Database
@@ -201,7 +203,7 @@ def upload_photo():
     unique_id = uuid.uuid4()
     filename = f"{unique_id}_{secure_filename(photo.filename)}"
     
-    # Get the current date and time in the format (yr-day_of_year)
+    # Get the current date and time in the format you wanted
     now = datetime.now()
     year = now.year % 100
     day_of_year = now.timetuple().tm_yday
@@ -245,16 +247,16 @@ def get_all_photos():
     photos_list = []
 
     for photo in user_photos:
-        photo_url = url_for('serve_photo', user_id=user_id, date_folder=photo.date_folder.strftime('%Y-%m-%d'), filename=photo.filename, _external=True)
+        photo_url = url_for('serve_photo', user_id=user_id, filename=photo.filename, _external=True)  # Get the URL of the photo
         photo_info = {
             'photo_uuid': photo.uuid,
             'filename': photo.filename,
             'user_id': photo.user_id,
-            'photo_url': photo_url
+            'photo_url': photo_url  # Include the URL in the response
         }
         photos_list.append(photo_info)
 
-    response = jsonify(photos_list)
+    response = jsonify(photos_list)  # Move the response outside the loop
     return response
 
 # Serving images
@@ -413,10 +415,6 @@ def get_user_info(user):
 @jwt_required()
 def photos_page():
     return render_template('photos.html')
-
-@app.route('/')
-def home():
-    return render_template('index.html')
 
 # Run server
 if __name__ ==  '__main__':

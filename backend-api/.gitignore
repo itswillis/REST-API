@@ -8,3 +8,5 @@ Pipfile.lock
 db.sqlite
 test
 api-demo/venv/
+wpa_supplicant.conf.txt
+ssd.txt
