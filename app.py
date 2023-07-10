@@ -42,7 +42,7 @@ print(f"SECRET_KEY: {app.config['SECRET_KEY']}") #print secret key -> can delete
 
 # Uploads settings
 app.config['UPLOADED_PHOTOS_DEST'] = os.path.join(basedir, 'static/images')
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours = 24) # Set to 1-day for testing -> For production delete this due to security purposes
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes = 15) 
 photos = UploadSet('photos', IMAGES)
 configure_uploads(app, photos)
 
@@ -380,7 +380,7 @@ def login():
     if user:
         print(f"User found: id={user.id}, email={user.email}")  # Debugging print statement
         if bcrypt.check_password_hash(user.password, password):
-            access_token = create_access_token(identity=user.id, expires_delta=timedelta(minutes=15))
+            access_token = create_access_token(identity=user.id)
             return jsonify({
                 'access_token': access_token,
                 'message': 'Login successful'
